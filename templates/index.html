@@ -41,6 +41,50 @@
             overflow-y: auto;
         }
     </style>
+
+    <script>
+        let video, canvas, context;
+
+        async function startWebcam() {
+            video = document.getElementById('webcam');
+            canvas = document.createElement('canvas');
+            context = canvas.getContext('2d');
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Error accessing webcam:", err);
+            }
+        }
+
+        async function captureAndSend() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const base64Image = canvas.toDataURL('image/jpeg');
+
+            try {
+                const res = await fetch('/detect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: base64Image })
+                });
+
+                const data = await res.json();
+                document.getElementById('result').src = data.result;
+            } catch (err) {
+                console.error("Error sending frame:", err);
+            }
+        }
+
+        window.onload = () => {
+            startWebcam();
+            setInterval(captureAndSend, 200); // send frame every 200ms
+        };
+    </script>
+
 </head>
 <body>
 
@@ -48,7 +92,7 @@
     <p class="subtext">This is a beta app — improvements regarding the model are to be made, especially when it comes to detecting sharp objects.</p>
 
     <div class="video-container">
-        <img src="{{ url_for('video_feed') }}" width="960" />
+        <video id="webcam" autoplay playsinline width="640" height="480"></video>
     </div>
 
     <div id="logs">
