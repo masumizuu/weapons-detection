@@ -90,7 +90,12 @@ def detect():
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
     # YOLOv11 Inference
-    results = model(frame, conf=0.1)
+    # Resize for consistent detection (YOLO performs better around 640-960)
+    scaled = cv2.resize(frame, (960, 960))
+    results = model(scaled, conf=0.1)
+
+    x_scale = frame.shape[1] / 960
+    y_scale = frame.shape[0] / 960
 
     logs = []
     for r in results:
@@ -106,7 +111,12 @@ def detect():
                 detection_logs.pop(0)
 
             # Draw on frame
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            x1, y1, x2, y2 = box.xyxy[0]
+            x1 = int(x1 * x_scale)
+            y1 = int(y1 * y_scale)
+            x2 = int(x2 * x_scale)
+            y2 = int(y2 * y_scale)
+
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
             cv2.putText(frame, label, (x1, y1 - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
